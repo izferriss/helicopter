@@ -32,6 +32,9 @@ var isGameOver = false;
 //canvas context
 var ctx;
 
+//Game speed
+var gameSpeed = 0.8;
+
 //frame rate stuff
 var framesLastSecond = 0;
 var currentSecond = 0;
@@ -44,7 +47,7 @@ var delta;
 var borderHeight = 20;
 var obstacleHeightMultiplier = 0.8;
 var obstacleWidthMultiplier = 0.1;
-var obstacleSpeed = 3; //this is essentially the game speed atm
+var obstacleSpeed = 3;
 
 //input handler array
 let keysDown = {};
@@ -117,21 +120,22 @@ function draw()
 }
 
 //handle user input and difficulty
-function update()
+function update(timePassed)
 {
-    handleInput();
+    handleInput(timePassed);
+
     //normal mode
-    if(score % 120 == 0 && score < 10000 && isPlaying)
+    if(score % 120 == 0 && score < 5000 && isPlaying)
     {
         createObstacle();
     }
     //tougher
-    else if(score % 90 == 0 && score >= 10000 && score < 100000 && isPlaying)
+    else if(score % 90 == 0 && score >= 5000 && score < 10000 && isPlaying)
     {
         createObstacle();
     }
     //likely impossible
-    else if(score % 60 == 0 && score >= 100000 && score < 1000000 && isPlaying)
+    else if(score % 60 == 0 && score >= 10000 && score < 1000000 && isPlaying)
     {
         createObstacle();
     }
@@ -145,7 +149,7 @@ function update()
     }
 
     //update obstacle positions
-    moveObstacle();
+    moveObstacle(timePassed);
 
     //delete any that have moved out of context
     deleteObstacle();
@@ -154,9 +158,10 @@ function update()
 //bread and butter
 function gameLoop()
 {
-    //do FPS stuff (time-regulated gameplay not implemented yet)
+    //do FPS stuff
     currentFrameTime = Date.now();
     delta = currentFrameTime - lastFrameTime;
+    delta = Math.min(delta, gameSpeed);
     var sec = Math.floor(Date.now() / 1000);
 
     if(sec != currentSecond)
@@ -186,7 +191,7 @@ function gameLoop()
     //Clear
     ctx.clearRect(0,0, canvas.w, canvas.h);
     //Process
-    update();
+    update(delta);
     //Draw
     draw();
     //Play it again, Sam!
@@ -219,7 +224,7 @@ function drawGameOver()
     ctx.textAlign = "center";
     ctx.fillText("u ded @ " + score + " pts", canvas.w/2, canvas.h/2);
     deleteAllObstacles();
-    ctx.fillText("Press [Space] to suck less", canvas.w/2, canvas.h/2 + 20);
+    ctx.fillText("Press [Space] to do better", canvas.w/2, canvas.h/2 + 20);
     ctx.fillText("Press [Esc] to go back to the start screen", canvas.w/2, canvas.h/2 + 40);
 }
 
@@ -267,19 +272,19 @@ function drawStats()
 }
 
 //Handle user input (key and mouse) and also apply gravity to player if isPlaying
-function handleInput()
+function handleInput(timePassed)
 {
     if(('a' in keysDown || 'A' in keysDown) && isPlaying)
     {
-        player.x -= player.velX;
+        player.x -= (player.velX * timePassed);
     }
     if(('d' in keysDown || 'D' in keysDown) && isPlaying)
     {
-        player.x += player.velX;
+        player.x += (player.velX * timePassed);
     }
     if('mousedown' in keysDown && isPlaying)
     {
-        player.y -= player.velY + player.gravity;
+        player.y -= ((player.velY + player.gravity) * timePassed);
     }
     if(' ' in keysDown && isStartGame)
     {
@@ -306,7 +311,7 @@ function handleInput()
     //apply gravity
     if(isPlaying)
     {
-        player.y += player.gravity;
+        player.y += (player.gravity * timePassed);
         checkCollisions();
     }
 }
@@ -401,11 +406,11 @@ function deleteObstacle()
 }
 
 //Move 
-function moveObstacle()
+function moveObstacle(timePassed)
 {
     for (let i = 0; i < obstacles.length; i++)
     {
-        obstacles[i].x -= obstacles[i].velX;
+        obstacles[i].x -= (obstacles[i].velX * timePassed);
     }
 }
 
